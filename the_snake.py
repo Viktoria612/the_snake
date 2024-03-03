@@ -45,31 +45,35 @@ clock = pygame.time.Clock()
 class GameObject:
     """Общий класс для объектов игры."""
 
-    def __init__(self, body_color=None):
+    def __init__(self, body_color=None, border_color=None):
         """Инициализирует объект игры."""
         self.position = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
         self.body_color = body_color
+        self.border_color = border_color
 
     def draw(self):
         """Отрисовывает объект игры на экране."""
-        pass
+        raise NotImplementedError('Important...please implement it.')
 
 
 class Apple(GameObject):
     """Класс для представления яблока"""
 
-    def __init__(self, body_color=APPLE_COLOR):
+    def __init__(self, body_color=APPLE_COLOR, border_color=BORDER_COLOR):
         """Инициализирует яблоко."""
-        super().__init__(body_color)
-        self.randomize_position()
+        super().__init__(body_color, border_color)
+        self.randomize_position([])
 
-    def randomize_position(self):
+    def randomize_position(self, snake_positions):
         """Устанавливает случайное положение в игре."""
         max_x = SCREEN_WIDTH - GRID_SIZE
         max_y = SCREEN_HEIGHT - GRID_SIZE
-        x = randint(0, max_x) // GRID_SIZE * GRID_SIZE
-        y = randint(0, max_y) // GRID_SIZE * GRID_SIZE
-        self.position = (x, y)
+        available_positions = [
+            (x, y) for x in range(0, max_x, GRID_SIZE)
+            for y in range(0, max_y, GRID_SIZE)
+            if (x, y) not in snake_positions
+        ]
+        self.position = choice(available_positions)
 
     def draw(self, surface):
         """Отрисовывает яблоко на игровом поле."""
@@ -78,7 +82,7 @@ class Apple(GameObject):
             (GRID_SIZE, GRID_SIZE)
         )
         pygame.draw.rect(surface, self.body_color, rect)
-        pygame.draw.rect(surface, BORDER_COLOR, rect, 1)
+        pygame.draw.rect(surface, self.border_color, rect, 1)
 
     def get_position(self):
         """Возвращает текущее положение яблока."""
@@ -88,9 +92,9 @@ class Apple(GameObject):
 class Snake(GameObject):
     """Класс для представления змейки."""
 
-    def __init__(self, body_color=SNAKE_COLOR):
+    def __init__(self, body_color=SNAKE_COLOR, border_color=BORDER_COLOR):
         """Инициализирует змейку."""
-        super().__init__(body_color)
+        super().__init__(body_color, border_color)
         self.direction = RIGHT
         self.next_direction = None
         self.positions = [self.position]
@@ -108,11 +112,11 @@ class Snake(GameObject):
                 pygame.Rect((position[0], position[1]), (GRID_SIZE, GRID_SIZE))
             )
             pygame.draw.rect(surface, self.body_color, rect)
-            pygame.draw.rect(surface, BORDER_COLOR, rect, 1)
+            pygame.draw.rect(surface, self.border_color, rect, 1)
     # Отрисовка головы змейки
         head_rect = pygame.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
         pygame.draw.rect(surface, self.body_color, head_rect)
-        pygame.draw.rect(surface, BORDER_COLOR, head_rect, 1)
+        pygame.draw.rect(surface, self.border_color, head_rect, 1)
     # Затирание последнего сегмента
         if self.last:
             last_rect = pygame.Rect(
@@ -194,7 +198,7 @@ def main():
 
     screen.fill(BOARD_BACKGROUND_COLOR)
 
-    apple.randomize_position()
+    apple.randomize_position(snake.positions)
     while True:
         clock.tick(SPEED)
 
@@ -203,7 +207,7 @@ def main():
         snake.move()
 
         if apple.position in snake.positions:
-            apple.randomize_position()
+            apple.randomize_position(snake.positions)
             snake.grow()
 
         for position in snake.positions[1:-1]:
